@@ -3,7 +3,8 @@ from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
 from .models import Song
-from .serializers import SongSerializer
+from .serializers import SongSerializer, PlaylistGenerationRequestSerializer, GeneratedSongSerializer
+from .services import GeminiService
 
 class SongListView(APIView):
     permission_classes = [IsAuthenticated]
@@ -12,3 +13,24 @@ class SongListView(APIView):
         songs = Song.objects.all()
         serializer = SongSerializer(songs, many=True)
         return Response(serializer.data)
+    
+class PlaylistGeneratorView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        request_serializer = PlaylistGenerationRequestSerializer(data=request.data)
+        if request_serializer.is_valid():
+            try:
+                gemini_service = GeminiService()
+                playlist = gemini_service.generate_playlist(
+                    mood=request_serializer.validated_data['mood'],
+                    genre=request_serializer.validated_data['genre'],
+                    activity=request_serializer.validated_data['activity']
+                )
+                response_serializer = GeneratedSongSerializer(data=playlist, many=True)
+                if response_serializer.is_valid():
+                    return Response(response_serializer.data, status=status.HTTP_200_OK)
+                return Response(response_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+            except ValueError as e:
+                return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        return Response(request_serializer.errors, status=status.HTTP_400_BAD_REQUEST)

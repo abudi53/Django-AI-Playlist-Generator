@@ -78,6 +78,9 @@ SIMPLE_JWT = {
     'REFRESH_TOKEN_LIFETIME': timedelta(days=1),
 }
 
+# Google AI Configuration
+GOOGLE_API_KEY = os.getenv('GOOGLE_API_KEY')
+
 CORS_ALLOW_ALL_ORIGINS = True  # For development only
 
 ROOT_URLCONF = 'config.urls'
