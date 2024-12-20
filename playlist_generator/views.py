@@ -1,18 +1,25 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from rest_framework import status
+from rest_framework import status, viewsets
 from rest_framework.permissions import IsAuthenticated
-from .models import Song
-from .serializers import SongSerializer, PlaylistGenerationRequestSerializer, GeneratedSongSerializer
+from .models import Playlist
+from .serializers import PlaylistDetailSerializer, PlaylistGenerationRequestSerializer, GeneratedSongSerializer
 from .services import GeminiService
+from django.views.generic import TemplateView
+from django.contrib.auth.mixins import LoginRequiredMixin
 
-class SongListView(APIView):
+class HomeView(LoginRequiredMixin, TemplateView):
+    template_name = 'playlist_generator/home.html'
+
+class PlaylistViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
+    serializer_class = PlaylistDetailSerializer
 
-    def get(self, request):
-        songs = Song.objects.all()
-        serializer = SongSerializer(songs, many=True)
-        return Response(serializer.data)
+    def get_queryset(self):
+        return Playlist.objects.filter(user=self.request.user)
+
+    def perform_create(self, serializer):
+        serializer.save(user=self.request.user)
     
 class PlaylistGeneratorView(APIView):
     permission_classes = [IsAuthenticated]
